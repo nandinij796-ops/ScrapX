@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import Navbar from "../components/Navbar";
+import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 
 function ScrapList() {
   const [scraps, setScraps] = useState([]);
+
+  const handleDelete = async (id) => {
+    await deleteDoc(doc(db, "scraps", id));
+
+    setScraps(scraps.filter((scrap) => scrap.id !== id));
+
+    alert("Scrap Deleted Successfully!");
+  };
 
   useEffect(() => {
     const fetchScraps = async () => {
@@ -40,6 +48,10 @@ function ScrapList() {
           <p>Category: {scrap.category}</p>
           <p>Weight: {scrap.weight} kg</p>
           <p>Price: ₹{scrap.price}</p>
+
+          <button onClick={() => handleDelete(scrap.id)}>
+            Delete
+          </button>
         </div>
       ))}
     </>
