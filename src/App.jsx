@@ -62,6 +62,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        
 
         <Route
           path="/edit/:id"
@@ -79,7 +80,7 @@ function App() {
     </ProtectedRoute>
   }
 />
-
+        <Route path="/contact" element={<Contact />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/services" element={<Services />} />
