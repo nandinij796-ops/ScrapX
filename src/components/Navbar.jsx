@@ -49,7 +49,7 @@ useEffect(() => {
 >
   Scrap List
 </Link>
-
+        <Link to="/dashboard">Dashboard</Link>
         <Link to="/about" style={{ color: "white", textDecoration: "none" }}>
           About
         </Link>

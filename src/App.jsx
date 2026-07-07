@@ -11,6 +11,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AddScrap from "./pages/AddScrap";
+import Dashboard from "./pages/Dashboard";
 
 function App() {
   return (
@@ -24,6 +25,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/dashboard"
+  element={
+    <ProtectedRoute>
+      <Dashboard />
+    </ProtectedRoute>
+  }
+/>
 
         <Route
           path="/scraps"
