@@ -4,10 +4,12 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "../firebase";
 
 function AddScrap() {
+  const [status, setStatus] = useState("Available");
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
   const [weight, setWeight] = useState("");
   const [price, setPrice] = useState("");
+  const [image, setImage] = useState("");
 
   const handleSubmit = async () => {
     try {
@@ -16,6 +18,9 @@ function AddScrap() {
         category,
         weight,
         price,
+        image,
+        status,
+        createdAt:new Date().toLocaleString(),
       });
 
       alert("Scrap Added Successfully 🎉");
@@ -24,6 +29,8 @@ function AddScrap() {
       setCategory("");
       setWeight("");
       setPrice("");
+      setImage("");
+      setStatus("Available")
     } catch (error) {
       alert(error.message);
     }
@@ -68,6 +75,23 @@ function AddScrap() {
         value={price}
         onChange={(e) => setPrice(e.target.value)}
       />
+      <input
+       type="text"
+       placeholder="Enter Image URL"
+      value={image}
+      onChange={(e) => setImage(e.target.value)}
+      required
+      />
+      <select
+  value={status}
+  onChange={(e) => setStatus(e.target.value)}
+>
+  <option value="Available">Available</option>
+  <option value="Sold">Sold</option>
+</select>
+
+<br /><br />
+
 
       <br /><br />
 
