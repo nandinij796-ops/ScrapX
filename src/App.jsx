@@ -4,6 +4,8 @@ import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ScrapList from "./pages/ScrapList";
 import EditScrap from "./pages/EditScrap";
+import Emergency from "./pages/Emergency";
+import EmergencyList from "./pages/EmergencyList";
 
 import Home from "./pages/Home";
 import Services from "./pages/Services";
@@ -12,6 +14,7 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AddScrap from "./pages/AddScrap";
 import Dashboard from "./pages/Dashboard";
+
 
 function App() {
   return (
@@ -42,6 +45,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/emergency-list"
+  element={
+    <ProtectedRoute>
+      <EmergencyList />
+    </ProtectedRoute>
+  }
+/>
 
         <Route
           path="/addscrap"
@@ -60,6 +71,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+  path="/emergency"
+  element={
+    <ProtectedRoute>
+      <Emergency />
+    </ProtectedRoute>
+  }
+/>
 
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />

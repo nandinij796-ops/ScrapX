@@ -49,6 +49,8 @@ useEffect(() => {
 >
   Scrap List
 </Link>
+        <Link to="/emergency-list">Emergency List</Link>
+        <Link to="/emergency">Emergency</Link>
         <Link to="/dashboard">Dashboard</Link>
         <Link to="/about" style={{ color: "white", textDecoration: "none" }}>
           About
