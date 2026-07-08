@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 import { db } from "../firebase";
+import { auth } from "../firebase";
 import {
   doc,
   getDoc,
@@ -27,12 +28,18 @@ function EditScrap() {
       if (docSnap.exists()) {
         const data = docSnap.data();
 
-        setName(data.name || "");
-        setCategory(data.category || "");
-        setWeight(data.weight || "");
-        setPrice(data.price || "");
-        setImage(data.image || "");
-        setStatus(data.status || "Available");
+if (!auth.currentUser || data.ownerId !== auth.currentUser.uid) {
+  alert("You are not allowed to edit this scrap ❌");
+  navigate("/scraps");
+  return;
+}
+
+setName(data.name || "");
+setCategory(data.category || "");
+setWeight(data.weight || "");
+setPrice(data.price || "");
+setImage(data.image || "");
+setStatus(data.status || "Available");
       }
     };
 

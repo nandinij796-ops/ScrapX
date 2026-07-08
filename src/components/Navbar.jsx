@@ -1,21 +1,22 @@
-
 import { Link, useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth";
+import { signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import { useEffect, useState } from "react";
+import "./Navbar.css";
 
 function Navbar() {
+
   const [user, setUser] = useState(null);
-
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-    setUser(currentUser);
-  });
-
-  return () => unsubscribe();
-}, []);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
 
   const handleLogout = async () => {
     try {
@@ -27,93 +28,80 @@ useEffect(() => {
     }
   };
 
+
   return (
-    <nav
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "15px 30px",
-        backgroundColor: "#333",
-      }}
-    >
-      <h2 style={{ color: "white" }}>ScrapX</h2>
+    <nav className="navbar">
 
-      <div style={{ display: "flex", gap: "20px", alignItems: "center" }}>
-        <Link to="/" style={{ color: "white", textDecoration: "none" }}>
-          Home
-        </Link>
-        <Link
-  to="/scraps"
-  style={{ color: "white", textDecoration: "none" }}
->
-  Scrap List
-</Link>
-        <Link to="/contact">Contact</Link>
-        <Link to="/emergency-list" style={{ color: "white", textDecoration: "none" }}>
-  Emergency List
-</Link>
+      <h2>ScrapX</h2>
 
-<Link to="/emergency" style={{ color: "white", textDecoration: "none" }}>
-  Emergency
-</Link>
+      <div className="nav-links">
 
-<Link to="/dashboard" style={{ color: "white", textDecoration: "none" }}>
-  Dashboard
-</Link>
-        <Link to="/about" style={{ color: "white", textDecoration: "none" }}>
-          About
+        <Link to="/">Home</Link>
+
+        <Link to="/scraps">
+          Scrap List
         </Link>
 
-        <Link to="/services" style={{ color: "white", textDecoration: "none" }}>
+        <Link to="/addscrap">
+          Add Scrap
+        </Link>
+
+        <Link to="/notifications">
+          🔔 Notifications
+        </Link>
+
+        <Link to="/contact">
+          Contact
+        </Link>
+
+        <Link to="/emergency-list">
+          Emergency List
+        </Link>
+
+        <Link to="/emergency">
+          Emergency
+        </Link>
+
+        <Link to="/dashboard">
+          Dashboard
+        </Link>
+
+        <Link to="/services">
           Services
         </Link>
 
-        <Link to="/contact" style={{ color: "white", textDecoration: "none" }}>
-          Contact
+        <Link to="/about">
+          About
         </Link>
-        <Link
-  to="/addscrap"
-  style={{ color: "white", textDecoration: "none" }}
->
-  Add Scrap
-</Link>
+
 
         {user ? (
-  <>
-    <span style={{ color: "white" }}>
-      Welcome {user.email}
-    </span>
+          <>
+            <span className="welcome">
+              Welcome {user.email}
+            </span>
 
-    <button
-      onClick={handleLogout}
-      style={{
-        background: "red",
-        color: "white",
-        border: "none",
-        padding: "8px 15px",
-        borderRadius: "5px",
-        cursor: "pointer",
-      }}
-    >
-      Logout
-    </button>
-  </>
-) : (
-  <>
-    <Link to="/login" style={{ color: "white", textDecoration: "none" }}>
-      Login
-    </Link>
+            <button
+              className="logout-btn"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </>
+        ) : (
+          <>
+            <Link to="/login">
+              Login
+            </Link>
 
-    <Link to="/signup" style={{ color: "white", textDecoration: "none" }}>
-      Signup
-    </Link>
-  </>
-)}
+            <Link to="/signup">
+              Signup
+            </Link>
+          </>
+        )}
 
-        
-        
       </div>
+
     </nav>
   );
 }

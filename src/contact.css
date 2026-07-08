@@ -1,103 +1,61 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background-color: #121212;
-  color: white;
+.contact-container {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 25px;
+  background: #ffffff;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.12);
 }
 
-/* Navbar */
-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: #1e3a8a;
-  padding: 15px 30px;
-}
-
-nav h2 {
-  margin: 0;
-  color: white;
-}
-
-nav div {
-  display: flex;
-  gap: 20px;
-}
-
-nav a {
-  color: white;
-  text-decoration: none;
-  font-weight: bold;
-}
-
-/* Hero Section */
-.hero {
+.contact-container h2 {
   text-align: center;
-  padding: 80px 20px;
-}
-
-.hero h1 {
-  font-size: 48px;
-  margin-bottom: 15px;
-}
-
-.hero p {
-  font-size: 20px;
-  color: #d1d5db;
+  color: #222;
   margin-bottom: 25px;
 }
 
-.hero button {
-  padding: 12px 25px;
-  font-size: 16px;
-  background-color: #2563eb;
+.contact-container input,
+.contact-container textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+}
+
+.contact-container input:focus,
+.contact-container textarea:focus {
+  border-color: green;
+}
+
+.contact-container textarea {
+  height: 120px;
+  resize: none;
+}
+
+.contact-container button {
+  width: 100%;
+  padding: 12px;
+  background: green;
   color: white;
   border: none;
   border-radius: 8px;
+  font-size: 16px;
   cursor: pointer;
 }
 
-.hero button:hover {
-  background-color: #1d4ed8;
+.contact-container button:hover {
+  background: darkgreen;
 }
 
-.hero-img {
-  width: 400px;
-  max-width: 100%;
-  margin-top: 30px;
-}
 
-/* Login */
-.login-container {
-  width: 350px;
-  margin: 80px auto;
-  padding: 25px;
-  background-color: #1f2937;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
+@media (max-width: 768px) {
 
-.login-container h2 {
-  text-align: center;
-}
+  .contact-container {
+    width: 90%;
+    margin: 25px auto;
+    padding: 20px;
+  }
 
-.login-container input {
-  padding: 12px;
-  border: none;
-  border-radius: 6px;
-}
-
-.login-container button {
-  padding: 12px;
-  background-color: #2563eb;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.login-container button:hover {
-  background-color: #1d4ed8;
 }

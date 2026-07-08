@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
+import { auth, db } from "../firebase";
 import {
-  collection,
   getDocs,
   doc,
   deleteDoc,
+  addDoc,
+  collection,
 } from "firebase/firestore";
-import { db } from "../firebase";
 import Navbar from "../components/Navbar";
 import { Link } from "react-router-dom";
 
 function ScrapList() {
+
   const [scraps, setScraps] = useState([]);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
@@ -18,10 +20,11 @@ function ScrapList() {
     fetchScraps();
   }, []);
 
-  const fetchScraps = async () => {
-    const querySnapshot = await getDocs(collection(db, "scraps"));
 
-    const data = querySnapshot.docs.map((doc) => ({
+  const fetchScraps = async () => {
+    const snapshot = await getDocs(collection(db, "scraps"));
+
+    const data = snapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     }));
@@ -29,149 +32,182 @@ function ScrapList() {
     setScraps(data);
   };
 
+
   const handleDelete = async (id) => {
+
     const confirmDelete = window.confirm(
-      "Are you sure you want to delete this scrap?"
+      "Delete this scrap?"
     );
 
-    if (confirmDelete) {
-      await deleteDoc(doc(db, "scraps", id));
+    if(confirmDelete){
+      await deleteDoc(doc(db,"scraps",id));
       fetchScraps();
     }
+
   };
+
+
+  const handleBuy = async (scrap) => {
+
+    try{
+
+      if(!auth.currentUser){
+        alert("Please login first");
+        return;
+      }
+
+
+      if(!scrap.ownerId){
+        alert("Seller information missing");
+        return;
+      }
+
+
+      await addDoc(collection(db,"buyRequests"),{
+
+        scrapId:scrap.id,
+        scrapName:scrap.name,
+        sellerId:scrap.ownerId,
+        buyerId:auth.currentUser.uid,
+        status:"Pending",
+        createdAt:new Date().toLocaleString()
+
+      });
+
+
+      alert("Buy request sent ✅");
+
+
+    }catch(error){
+
+      alert(error.message);
+
+    }
+
+  };
+
 
   return (
     <>
       <Navbar />
 
-      <div style={{ padding: "20px" }}>
-        <h2>Scrap List</h2>
+      <div className="scrap-container">
+
+        <h2>🚗 Scrap List</h2>
+
 
         <select
+          className="filter-box"
           value={filter}
-          onChange={(e) => setFilter(e.target.value)}
+          onChange={(e)=>setFilter(e.target.value)}
         >
           <option value="All">All</option>
           <option value="Available">Available</option>
           <option value="Sold">Sold</option>
         </select>
 
-        <br /><br />
 
         <input
+          className="search-box"
           type="text"
           placeholder="Search Scrap..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e)=>setSearch(e.target.value)}
         />
 
-        <br /><br />
 
-        {scraps.length === 0 ? (
-          <p>No Scrap Found</p>
-        ) : (
+        {
           scraps
-            .filter((scrap) => {
-              const statusMatch =
-                filter === "All" || scrap.status === filter;
+          .filter((scrap)=>{
 
-              const searchMatch = scrap.name
-                ?.toLowerCase()
-                .includes(search.toLowerCase());
+            const statusMatch =
+            filter==="All" || scrap.status===filter;
 
-              return statusMatch && searchMatch;
-            })
-            .map((scrap) => (
-              <div
-                key={scrap.id}
-                style={{
-                  border: "1px solid #ccc",
-                  borderRadius: "10px",
-                  padding: "15px",
-                  marginBottom: "20px",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                }}
-              >
-                {scrap.image ? (
-                  <img
-                    src={scrap.image}
-                    alt={scrap.name}
-                    style={{
-                      width: "150px",
-                      height: "150px",
-                      objectFit: "cover",
-                      borderRadius: "10px",
-                      marginBottom: "10px",
-                    }}
-                  />
-                ) : (
-                  <p>No Image</p>
-                )}
 
-                <h3>{scrap.name}</h3>
+            const searchMatch =
+            scrap.name?.toLowerCase()
+            .includes(search.toLowerCase());
 
-                <p><strong>Category:</strong> {scrap.category}</p>
 
-                <p><strong>Weight:</strong> {scrap.weight} kg</p>
+            return statusMatch && searchMatch;
 
-                <p><strong>Price:</strong> ₹{scrap.price}</p>
+          })
+          .map((scrap)=>(
 
-                <p>
-                  <strong>Status:</strong>{" "}
-                  <span
-                    style={{
-                      backgroundColor:
-                        scrap.status === "Available"
-                          ? "green"
-                          : "red",
-                      color: "white",
-                      padding: "5px 10px",
-                      borderRadius: "5px",
-                    }}
-                  >
-                    {scrap.status}
-                  </span>
-                </p>
 
-                <p>
-                  <strong>Added On:</strong>{" "}
-                  {scrap.createdAt || "N/A"}
-                </p>
+          <div className="scrap-card" key={scrap.id}>
 
-                <br />
+
+            {
+              scrap.image ?
+              <img
+                src={scrap.image}
+                alt={scrap.name}
+                className="scrap-image"
+              />
+              :
+              <p>No Image</p>
+            }
+
+
+            <h3>{scrap.name}</h3>
+
+            <p>Category: {scrap.category}</p>
+
+            <p>Weight: {scrap.weight} kg</p>
+
+            <p>Price: ₹{scrap.price}</p>
+
+
+            <p>
+              Status:
+              <span className="status">
+                {scrap.status}
+              </span>
+            </p>
+
+
+            {
+              auth.currentUser?.uid === scrap.ownerId ?
+
+              <div>
 
                 <Link to={`/edit/${scrap.id}`}>
-                  <button
-                    style={{
-                      marginRight: "10px",
-                      padding: "8px 15px",
-                      backgroundColor: "blue",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Edit
+                  <button className="edit-btn">
+                    Edit ✏️
                   </button>
                 </Link>
 
+
                 <button
-                  onClick={() => handleDelete(scrap.id)}
-                  style={{
-                    padding: "8px 15px",
-                    backgroundColor: "red",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "5px",
-                    cursor: "pointer",
-                  }}
+                  className="delete-btn"
+                  onClick={()=>handleDelete(scrap.id)}
                 >
-                  Delete
+                  Delete 🗑️
                 </button>
+
               </div>
-            ))
-        )}
+
+              :
+
+              <button
+                className="buy-btn"
+                onClick={()=>handleBuy(scrap)}
+              >
+                Buy Now 🛒
+              </button>
+
+            }
+
+
+          </div>
+
+
+          ))
+
+        }
+
+
       </div>
     </>
   );

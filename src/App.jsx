@@ -14,6 +14,7 @@ import Contact from "./pages/Contact";
 import Login from "./pages/Login";
 import AddScrap from "./pages/AddScrap";
 import Dashboard from "./pages/Dashboard";
+import Notification from "./pages/Notification";
 
 
 function App() {
@@ -86,6 +87,7 @@ function App() {
         <Route path="/services" element={<Services />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/notification" element={<Notification />} />
       </Routes>
     </BrowserRouter>
   );
