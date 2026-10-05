@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db, auth } from "../firebase";
 import Navbar from "../components/Navbar";
+import { Link } from "react-router-dom";
 import "../styles/dashboard.css";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -20,10 +21,10 @@ function Dashboard() {
   const doc = new jsPDF();
 
   doc.setFontSize(18);
-  doc.text("ScrapX Report", 14, 20);
+  doc.text("ScrapX Seller Report", 14, 20);
 
   doc.setFontSize(12);
-  doc.text(`Total Scraps: ${totalScraps}`, 14, 30);
+  doc.text(`Total Listings: ${totalScraps}`, 14, 30);
   doc.text(`Available: ${availableScraps}`, 14, 38);
   doc.text(`Sold: ${soldScraps}`, 14, 46);
   doc.text(`Total Weight: ${totalWeight} kg`, 14, 54);
@@ -41,7 +42,7 @@ function Dashboard() {
     ]),
   });
 
-  doc.save("ScrapX_Report.pdf");
+  doc.save("ScrapX_Seller_Report.pdf");
 };
   const [totalScraps, setTotalScraps] = useState(0);
   const [availableScraps, setAvailableScraps] = useState(0);
@@ -51,11 +52,17 @@ function Dashboard() {
   const [recentScraps, setRecentScraps] = useState([]);
 
   useEffect(() => {
-    fetchData();
+    if (auth.currentUser) {
+      fetchData();
+    }
   }, []);
 
   const fetchData = async () => {
-    const querySnapshot = await getDocs(collection(db, "scraps"));
+    if (!auth.currentUser) return;
+    
+    // Filter to only show the CURRENT USER's listed products
+    const q = query(collection(db, "scraps"), where("ownerId", "==", auth.currentUser.uid));
+    const querySnapshot = await getDocs(q);
 
     let weight = 0;
     let value = 0;
@@ -98,8 +105,28 @@ function Dashboard() {
     <>
       <Navbar />
 
-      <div className="dashboard">
-        <h1>Dashboard</h1>
+      <div className="dashboard" style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "30px", flexWrap: "wrap", gap: "15px" }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: "2.5rem", color: "#1e293b" }}>Seller Hub</h1>
+            <p style={{ margin: "5px 0 0 0", color: "#64748b" }}>Manage your products and track sales performance</p>
+          </div>
+          
+          <div style={{ display: "flex", gap: "15px" }}>
+            <button
+              onClick={downloadPDF}
+              style={{ padding: "12px 24px", background: "white", color: "#3b82f6", border: "2px solid #3b82f6", borderRadius: "8px", fontWeight: "600", cursor: "pointer", display: "flex", alignItems: "center", gap: "8px" }}
+            >
+              📄 Export Report
+            </button>
+            <Link
+              to="/addscrap"
+              style={{ padding: "12px 24px", background: "#3b82f6", color: "white", border: "none", borderRadius: "8px", fontWeight: "600", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "8px", boxShadow: "0 4px 6px -1px rgba(59, 130, 246, 0.4)" }}
+            >
+              ➕ List New Product
+            </Link>
+          </div>
+        </div>
 
         <div className="cards">
           <div
@@ -165,22 +192,6 @@ function Dashboard() {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div style={{ textAlign: "center", margin: "20px 0" }}>
-  <button
-    onClick={downloadPDF}
-    style={{
-      padding: "12px 25px",
-      background: "#2563eb",
-      color: "white",
-      border: "none",
-      borderRadius: "8px",
-      cursor: "pointer",
-      fontSize: "16px",
-    }}
-  >
-    📄 Download PDF Report
-  </button>
-</div>
 
         <div className="recent">
           <h2>Recent Scraps</h2>

@@ -1,28 +1,27 @@
 import { Navigate } from "react-router-dom";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../firebase";
-import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
-function ProtectedRoute({ children }) {
-  const [user, setUser] = useState(undefined);
+function ProtectedRoute({ children, allowedRoles }) {
+  const { currentUser, userData, loading } = useAuth();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  if (user === undefined) {
-    return <h3>Loading...</h3>;
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <h3>Loading...</h3>
+      </div>
+    );
   }
 
-  if (!user) {
+  if (!currentUser) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If specific roles are required and user's role isn't in the list
+  if (allowedRoles && userData && !allowedRoles.includes(userData.role)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
 }
 
-export default ProtectedRoute
+export default ProtectedRoute;

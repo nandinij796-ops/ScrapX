@@ -15,79 +15,35 @@ import Login from "./pages/Login";
 import AddScrap from "./pages/AddScrap";
 import Dashboard from "./pages/Dashboard";
 import Notification from "./pages/Notification";
+import Chat from "./pages/Chat";
+import NearbyMap from "./pages/NearbyMap";
 
+
+import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" reverseOrder={false} />
       <Routes>
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-  path="/dashboard"
-  element={
-    <ProtectedRoute>
-      <Dashboard />
-    </ProtectedRoute>
-  }
-/>
-
-        <Route
-          path="/scraps"
-          element={
-            <ProtectedRoute>
-              <ScrapList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-  path="/emergency-list"
-  element={
-    <ProtectedRoute>
-      <EmergencyList />
-    </ProtectedRoute>
-  }
-/>
-
-        <Route
-          path="/addscrap"
-          element={
-            <ProtectedRoute>
-              <AddScrap />
-            </ProtectedRoute>
-          }
-        />
-        
-
-        <Route
-          path="/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditScrap />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-  path="/emergency"
-  element={
-    <ProtectedRoute>
-      <Emergency />
-    </ProtectedRoute>
-  }
-/>
+        {/* Public Routes */}
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/services" element={<Services />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/notification" element={<Notification />} />
+
+        {/* Protected Routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/scraps" element={<ProtectedRoute><ScrapList /></ProtectedRoute>} />
+        <Route path="/addscrap" element={<ProtectedRoute><AddScrap /></ProtectedRoute>} />
+        <Route path="/edit/:id" element={<ProtectedRoute><EditScrap /></ProtectedRoute>} />
+        <Route path="/emergency" element={<ProtectedRoute><Emergency /></ProtectedRoute>} />
+        <Route path="/emergency-list" element={<ProtectedRoute><EmergencyList /></ProtectedRoute>} />
+        <Route path="/notification" element={<ProtectedRoute><Notification /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+        <Route path="/nearby" element={<ProtectedRoute><NearbyMap /></ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );
