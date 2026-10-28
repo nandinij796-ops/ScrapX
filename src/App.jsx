@@ -17,33 +17,128 @@ import Dashboard from "./pages/Dashboard";
 import Notification from "./pages/Notification";
 import Chat from "./pages/Chat";
 import NearbyMap from "./pages/NearbyMap";
-
+import PickupSchedule from "./pages/PickupSchedule";
+import ScrapRates from "./pages/ScrapRates";
+import Orders from "./pages/Orders";
+import Profile from "./pages/Profile";
 
 import { Toaster } from "react-hot-toast";
 
 function App() {
   return (
     <BrowserRouter>
-      <Toaster position="top-right" reverseOrder={false} />
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          style: {
+            background: "#1E293B",
+            color: "#F8FAFC",
+            border: "1px solid #334155",
+            borderRadius: "10px",
+            fontSize: "0.92rem",
+          },
+          success: {
+            iconTheme: {
+              primary: "#15803D",
+              secondary: "#FFFFFF",
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: "#EF4444",
+              secondary: "#FFFFFF",
+            },
+          },
+        }}
+      />
       <Routes>
-        {/* Public Routes */}
+        {/* Public Core Routes */}
         <Route path="/" element={<Home />} />
         <Route path="/about" element={<About />} />
         <Route path="/services" element={<Services />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/scraps" element={<ScrapList />} />
+        <Route path="/pickups" element={<PickupSchedule />} />
+        <Route path="/rates" element={<ScrapRates />} />
+        <Route path="/emergency" element={<Emergency />} />
+        <Route path="/nearby" element={<NearbyMap />} />
 
-        {/* Protected Routes */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/scraps" element={<ProtectedRoute><ScrapList /></ProtectedRoute>} />
-        <Route path="/addscrap" element={<ProtectedRoute><AddScrap /></ProtectedRoute>} />
-        <Route path="/edit/:id" element={<ProtectedRoute><EditScrap /></ProtectedRoute>} />
-        <Route path="/emergency" element={<ProtectedRoute><Emergency /></ProtectedRoute>} />
-        <Route path="/emergency-list" element={<ProtectedRoute><EmergencyList /></ProtectedRoute>} />
-        <Route path="/notification" element={<ProtectedRoute><Notification /></ProtectedRoute>} />
-        <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
-        <Route path="/nearby" element={<ProtectedRoute><NearbyMap /></ProtectedRoute>} />
+        {/* Member & Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <Orders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/add"
+          element={
+            <ProtectedRoute>
+              <AddScrap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/addscrap"
+          element={
+            <ProtectedRoute>
+              <AddScrap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditScrap />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/emergency-list"
+          element={
+            <ProtectedRoute allowedRoles={["Mechanic", "Admin"]}>
+              <EmergencyList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notification"
+          element={
+            <ProtectedRoute>
+              <Notification />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <Chat />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
