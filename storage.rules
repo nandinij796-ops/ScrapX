@@ -1,0 +1,35 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    // Scrap product listing images
+    match /scraps/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isUnder5MB();
+      allow delete: if isOwner(userId);
+    }
+
+    // Profile photos or business avatars
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && isImage() && isUnder5MB();
+      allow delete: if isOwner(userId);
+    }
+  }
+}
