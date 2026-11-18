@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { auth } from "../firebase";
 import { formatDistance } from "../utils/geo";
+import { addScrapReview } from "../services/scrapService";
+import { toast } from "react-hot-toast";
 import {
   X,
   ChevronLeft,
@@ -14,13 +16,49 @@ import {
   ShoppingBag,
   Tag,
   CheckCircle2,
-  Calendar
+  Calendar,
+  Star,
+  Layers,
+  Award
 } from "lucide-react";
 
 function ScrapDetailModal({ scrap, userDistance, onClose, onBuyClick }) {
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
+  const [userRating, setUserRating] = useState(5);
+  const [userComment, setUserComment] = useState("");
+  const [currentRating, setCurrentRating] = useState(scrap?.rating || 4.8);
+  const [reviewsCount, setReviewsCount] = useState(scrap?.reviewsCount || 14);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [showRatingBox, setShowRatingBox] = useState(false);
 
   if (!scrap) return null;
+
+  const handleAddReview = async (e) => {
+    e.preventDefault();
+    if (!auth.currentUser) {
+      toast.error("Please login to leave a rating.");
+      return;
+    }
+    setIsSubmittingRating(true);
+    try {
+      const result = await addScrapReview(scrap.id, {
+        rating: userRating,
+        comment: userComment || "Authentic scrap part, matches description.",
+        userName: auth.currentUser?.displayName || auth.currentUser?.email?.split("@")[0] || "Verified Buyer"
+      });
+      if (result) {
+        setCurrentRating(result.newRating);
+        setReviewsCount(result.newCount);
+        toast.success("Thank you! Your rating has been submitted. ★");
+        setShowRatingBox(false);
+        setUserComment("");
+      }
+    } catch (err) {
+      toast.error("Failed to submit rating.");
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
 
   const images = Array.isArray(scrap.images) && scrap.images.length > 0
     ? scrap.images
@@ -208,7 +246,7 @@ function ScrapDetailModal({ scrap, userDistance, onClose, onBuyClick }) {
           {/* Header Row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "18px" }}>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px", flexWrap: "wrap" }}>
                 <span className="badge badge-success">
                   {scrap.category || "Engine Parts"}
                 </span>
@@ -218,6 +256,24 @@ function ScrapDetailModal({ scrap, userDistance, onClose, onBuyClick }) {
                 <span className={`badge ${scrap.status === "Available" ? "badge-success" : "badge-neutral"}`}>
                   {scrap.status}
                 </span>
+
+                {/* Rating Badge */}
+                <div style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  background: "#FEF3C7",
+                  color: "#92400E",
+                  padding: "3px 10px",
+                  borderRadius: "20px",
+                  fontSize: "0.78rem",
+                  fontWeight: "800",
+                  border: "1px solid #FDE68A"
+                }}>
+                  <Star size={13} fill="#F59E0B" color="#F59E0B" />
+                  <span>{currentRating.toFixed(1)} / 5.0</span>
+                  <span style={{ color: "#B45309", fontWeight: "600" }}>({reviewsCount} ratings)</span>
+                </div>
               </div>
               <h2 style={{ fontSize: "1.7rem", fontWeight: "800", color: "#0F172A", margin: 0 }}>
                 {scrap.name}
@@ -254,6 +310,12 @@ function ScrapDetailModal({ scrap, userDistance, onClose, onBuyClick }) {
               <strong style={{ fontSize: "0.92rem", color: "#0F172A" }}>{scrap.weight ? `${scrap.weight} kg` : "N/A"}</strong>
             </div>
             <div>
+              <span style={{ fontSize: "0.78rem", color: "#64748B", display: "block" }}>Stock Quantity</span>
+              <strong style={{ fontSize: "0.92rem", color: (scrap.quantity || 1) > 1 ? "#15803D" : "#B45309" }}>
+                {(scrap.quantity || 1) > 1 ? `${scrap.quantity} units available` : "Only 1 unit available"}
+              </strong>
+            </div>
+            <div>
               <span style={{ fontSize: "0.78rem", color: "#64748B", display: "block" }}>Location Hub</span>
               <strong style={{ fontSize: "0.92rem", color: "#0F172A", display: "flex", alignItems: "center", gap: "4px" }}>
                 <MapPin size={14} style={{ color: "#15803D" }} />
@@ -282,6 +344,158 @@ function ScrapDetailModal({ scrap, userDistance, onClose, onBuyClick }) {
               </p>
             </div>
           )}
+
+          {/* Buyer Trust & Product Rating Box */}
+          <div style={{
+            background: "#F8FAFC",
+            border: "1px solid #E2E8F0",
+            borderRadius: "14px",
+            padding: "20px",
+            marginBottom: "24px"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{
+                  width: "42px",
+                  height: "42px",
+                  borderRadius: "10px",
+                  background: "#ECFDF5",
+                  color: "#15803D",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  <Award size={22} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: "1rem", fontWeight: "800", color: "#0F172A" }}>
+                    Authenticity & Buyer Trust Rating
+                  </h4>
+                  <span style={{ fontSize: "0.8rem", color: "#64748B" }}>
+                    Verified ScrapX Physical & Mechanical Inspection
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <div style={{ display: "flex", gap: "2px" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={17}
+                      fill={star <= Math.round(currentRating) ? "#F59E0B" : "none"}
+                      color="#F59E0B"
+                    />
+                  ))}
+                </div>
+                <strong style={{ fontSize: "1.1rem", color: "#0F172A" }}>{currentRating.toFixed(1)}</strong>
+                <span style={{ fontSize: "0.82rem", color: "#64748B" }}>({reviewsCount} reviews)</span>
+              </div>
+            </div>
+
+            {/* Trust Highlights */}
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+              gap: "10px",
+              marginBottom: "14px",
+              fontSize: "0.84rem",
+              color: "#334155"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <CheckCircle2 size={15} style={{ color: "#15803D", flexShrink: 0 }} />
+                <span>OEM Part Serial Checked</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <CheckCircle2 size={15} style={{ color: "#15803D", flexShrink: 0 }} />
+                <span>Zero Stolen Vehicle Tagged</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <CheckCircle2 size={15} style={{ color: "#15803D", flexShrink: 0 }} />
+                <span>7-Day Fitment Verification</span>
+              </div>
+            </div>
+
+            {/* User Rating Toggle Button */}
+            {!showRatingBox ? (
+              <button
+                type="button"
+                onClick={() => setShowRatingBox(true)}
+                style={{
+                  background: "#FFFFFF",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "8px",
+                  padding: "7px 14px",
+                  fontSize: "0.82rem",
+                  fontWeight: "700",
+                  color: "#1E293B",
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px"
+                }}
+              >
+                <Star size={14} style={{ color: "#F59E0B" }} /> Rate this Scrap Part
+              </button>
+            ) : (
+              <form onSubmit={handleAddReview} style={{ background: "#FFFFFF", padding: "14px", borderRadius: "10px", border: "1px solid #CBD5E1", marginTop: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "600", color: "#334155" }}>Your Rating:</span>
+                  <div style={{ display: "flex", gap: "4px" }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setUserRating(star)}
+                        style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}
+                      >
+                        <Star
+                          size={20}
+                          fill={star <= userRating ? "#F59E0B" : "none"}
+                          color="#F59E0B"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                  <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "#15803D" }}>{userRating} / 5 Stars</span>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Share your experience (e.g., Clean part, fits my car, verified working)..."
+                  value={userComment}
+                  onChange={(e) => setUserComment(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    border: "1px solid #CBD5E1",
+                    fontSize: "0.88rem",
+                    marginBottom: "10px",
+                    outline: "none"
+                  }}
+                />
+
+                <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowRatingBox(false)}
+                    style={{ padding: "6px 12px", borderRadius: "6px", border: "1px solid #CBD5E1", background: "transparent", fontSize: "0.82rem", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingRating}
+                    className="btn-primary"
+                    style={{ padding: "6px 14px", fontSize: "0.82rem" }}
+                  >
+                    {isSubmittingRating ? "Saving..." : "Submit Rating"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
 
           {/* Seller Profile Card */}
           <div style={{

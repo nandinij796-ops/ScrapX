@@ -23,6 +23,7 @@ function EditScrap() {
   const [compatibility, setCompatibility] = useState("");
   const [condition, setCondition] = useState("Used - Good");
   const [weight, setWeight] = useState("");
+  const [quantity, setQuantity] = useState("1");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState("Available");
@@ -55,6 +56,7 @@ function EditScrap() {
         setCompatibility(data.compatibility || "");
         setCondition(data.condition || "Used - Good");
         setWeight(data.weight || "");
+        setQuantity(data.quantity || 1);
         setPrice(data.price || "");
         setDescription(data.description || "");
         setStatus(data.status || "Available");
@@ -88,6 +90,7 @@ function EditScrap() {
     if (!name.trim()) return toast.error("Please enter a part name.");
     if (!price || Number(price) <= 0) return toast.error("Please enter a valid price.");
     if (!weight || Number(weight) <= 0) return toast.error("Please enter a valid weight.");
+    if (!quantity || Number(quantity) <= 0) return toast.error("Please enter a valid quantity (at least 1 unit).");
 
     if (existingImages.length === 0 && pendingFiles.length === 0) {
       return toast.error("Please include at least one photo for the listing.");
@@ -116,6 +119,7 @@ function EditScrap() {
         compatibility: compatibility.trim(),
         condition,
         weight: Number(weight),
+        quantity: Math.max(1, parseInt(quantity, 10) || 1),
         price: Number(price),
         description: description.trim(),
         images: finalImages,
@@ -129,7 +133,7 @@ function EditScrap() {
       });
 
       toast.success("Listing Updated Successfully 🎉");
-      navigate("/dashboard");
+      navigate("/scraps");
     } catch (error) {
       console.error("Update error:", error);
       toast.error(error.message || "Failed to update listing.");
@@ -255,7 +259,7 @@ function EditScrap() {
                 disabled={submitting}
               />
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "14px" }}>
                 <div>
                   <label style={labelStyle}>Weight (kg) *</label>
                   <input
@@ -269,9 +273,23 @@ function EditScrap() {
                   />
                 </div>
                 <div>
+                  <label style={labelStyle}>Quantity (Units) *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    style={inputStyle}
+                    required
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
                   <label style={labelStyle}>Price (₹) *</label>
                   <input
                     type="number"
+                    min="1"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     style={inputStyle}

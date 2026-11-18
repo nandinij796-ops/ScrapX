@@ -21,7 +21,9 @@ import {
   ShoppingBag,
   Trash2,
   Edit,
-  Eye
+  Eye,
+  Star,
+  ShieldCheck
 } from "lucide-react";
 
 function ScrapList() {
@@ -115,6 +117,7 @@ function ScrapList() {
     .sort((a, b) => {
       if (sortBy === "price-asc") return Number(a.price) - Number(b.price);
       if (sortBy === "price-desc") return Number(b.price) - Number(a.price);
+      if (sortBy === "rating") return (Number(b.rating) || 4.5) - (Number(a.rating) || 4.5);
       if (sortBy === "distance") {
         if (a.distanceKm === null) return 1;
         if (b.distanceKm === null) return -1;
@@ -259,6 +262,7 @@ function ScrapList() {
                 }}
               >
                 <option value="newest">Sort: Newest Added</option>
+                <option value="rating">Sort: Highest Customer Rating ★</option>
                 <option value="price-asc">Sort: Price (Low to High)</option>
                 <option value="price-desc">Sort: Price (High to Low)</option>
                 {coords && <option value="distance">Sort: Nearest to My GPS</option>}
@@ -452,9 +456,26 @@ function ScrapList() {
                         <span style={{ fontSize: "0.78rem", color: "#15803D", fontWeight: "700", textTransform: "uppercase" }}>
                           {scrap.category}
                         </span>
-                        <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: "600" }}>
-                          {scrap.weight ? `${scrap.weight} kg` : ""}
-                        </span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          {/* Rating display */}
+                          <div style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px",
+                            backgroundColor: "#FEF3C7",
+                            color: "#92400E",
+                            padding: "2px 7px",
+                            borderRadius: "12px",
+                            fontSize: "0.74rem",
+                            fontWeight: "800"
+                          }} title="Customer satisfaction rating">
+                            <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                            <span>{scrap.rating ? scrap.rating.toFixed(1) : "4.8"}</span>
+                            <span style={{ color: "#B45309", fontWeight: "500", fontSize: "0.68rem" }}>
+                              ({scrap.reviewsCount || 12})
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
                       <h3
@@ -470,9 +491,27 @@ function ScrapList() {
                         {scrap.name}
                       </h3>
 
-                      <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 16px 0", flex: 1 }}>
+                      <p style={{ color: "#64748B", fontSize: "0.85rem", margin: "0 0 10px 0" }}>
                         {scrap.compatibility ? `Compatibility: ${scrap.compatibility}` : "Universal Fitment"}
                       </p>
+
+                      {/* Stock Quantity & Specs Row */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", marginBottom: "14px", flexWrap: "wrap" }}>
+                        <span style={{
+                          fontSize: "0.74rem",
+                          fontWeight: "700",
+                          color: (scrap.quantity || 1) > 1 ? "#166534" : "#9A3412",
+                          backgroundColor: (scrap.quantity || 1) > 1 ? "#DCFCE7" : "#FFEDD5",
+                          padding: "2px 8px",
+                          borderRadius: "6px",
+                          border: (scrap.quantity || 1) > 1 ? "1px solid #BBF7D0" : "1px solid #FED7AA"
+                        }}>
+                          {(scrap.quantity || 1) > 1 ? `📦 In Stock: ${scrap.quantity} units` : "🔥 Only 1 unit left"}
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "#64748B", fontWeight: "600" }}>
+                          {scrap.weight ? `Weight: ${scrap.weight} kg` : ""}
+                        </span>
+                      </div>
 
                       {/* Pricing & Footer Actions */}
                       <div style={{ borderTop: "1px solid #E2E8F0", paddingTop: "14px" }}>

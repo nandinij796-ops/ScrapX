@@ -85,22 +85,46 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
+      localStorage.removeItem("scrapx_active_session");
       await signOut(auth);
-      setCurrentUser(null);
-      setUserData(null);
     } catch (error) {
       console.error("Logout error:", error);
-      throw error;
+    }
+    setCurrentUser(null);
+    setUserData(null);
+  }, []);
+
+  const customLogin = useCallback((profile) => {
+    setCurrentUser(profile);
+    setUserData(profile);
+    try {
+      localStorage.setItem("scrapx_active_session", JSON.stringify(profile));
+      localStorage.setItem(`scrapx_user_${profile.uid}`, JSON.stringify(profile));
+    } catch (e) {
+      console.warn("Session storage notice:", e);
     }
   }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
       if (user) {
+        setCurrentUser(user);
         await fetchUserData(user);
       } else {
-        setUserData(null);
+        const stored = localStorage.getItem("scrapx_active_session");
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setCurrentUser(parsed);
+            setUserData(parsed);
+          } catch (e) {
+            setCurrentUser(null);
+            setUserData(null);
+          }
+        } else {
+          setCurrentUser(null);
+          setUserData(null);
+        }
       }
       setLoading(false);
     });
@@ -122,6 +146,7 @@ export const AuthProvider = ({ children }) => {
     isSeller,
     loading,
     refreshUserData,
+    customLogin,
     logout,
   };
 

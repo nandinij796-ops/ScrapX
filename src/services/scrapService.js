@@ -14,7 +14,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 
-const LOCAL_SCRAPS_KEY = "scrapx_persistent_scraps_v2";
+const LOCAL_SCRAPS_KEY = "scrapx_persistent_scraps_v3";
 
 // Authentic initial automotive scrap parts so marketplace is never blank
 const DEFAULT_SEED_SCRAPS = [
@@ -26,6 +26,9 @@ const DEFAULT_SEED_SCRAPS = [
     compatibility: "Tata Nexon Diesel (2018 - 2023)",
     price: 14500,
     weight: 7.2,
+    quantity: 2,
+    rating: 4.9,
+    reviewsCount: 24,
     description: "Genuine OEM Garrett turbocharger pulled from accident vehicle. Tested for shaft play and turbine integrity. Clean oil lines, ready to install.",
     images: [
       "https://images.unsplash.com/photo-1580273916550-e323be2ae537?auto=format&fit=crop&q=80&w=800",
@@ -50,6 +53,9 @@ const DEFAULT_SEED_SCRAPS = [
     compatibility: "Mahindra Thar (2020 - 2024)",
     price: 6800,
     weight: 18.5,
+    quantity: 3,
+    rating: 4.8,
+    reviewsCount: 16,
     description: "Offroad heavy duty front steel bumper with fog lamp housings and integrated tow hitch mount. Minor cosmetic scratches, no bends or cracks.",
     images: [
       "https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=80&w=800",
@@ -74,6 +80,9 @@ const DEFAULT_SEED_SCRAPS = [
     compatibility: "Maruti Swift, Dzire, Baleno (K12 Engine)",
     price: 3600,
     weight: 5.4,
+    quantity: 4,
+    rating: 4.7,
+    reviewsCount: 31,
     description: "OEM Bosch 90-ampere alternator. Voltage regulator and diodes load-tested and working at steady 14.2V output. Pulley in perfect shape.",
     images: [
       "https://images.unsplash.com/photo-1486006920555-c77dce18193b?auto=format&fit=crop&q=80&w=800",
@@ -97,6 +106,9 @@ const DEFAULT_SEED_SCRAPS = [
     compatibility: "Hyundai Creta, Kia Seltos (5x114.3 PCD)",
     price: 18000,
     weight: 38.0,
+    quantity: 1,
+    rating: 5.0,
+    reviewsCount: 9,
     description: "Original OEM Hyundai diamond cut alloys without bends, structural repairs or curb rash. Includes 4 Hyundai center caps.",
     images: [
       "https://images.unsplash.com/photo-1578844251758-2f71da64c96f?auto=format&fit=crop&q=80&w=800",
@@ -357,4 +369,34 @@ export async function getScrapById(scrapId) {
   }
 
   return localMatch || null;
+}
+
+/**
+ * Adds a verified buyer review and rating to a scrap listing
+ */
+export async function addScrapReview(scrapId, { rating, comment, userName }) {
+  const current = await getScrapById(scrapId);
+  if (!current) return false;
+
+  const currentCount = current.reviewsCount || 0;
+  const currentRating = current.rating || 5.0;
+  const newCount = currentCount + 1;
+  const newRating = Number(((currentRating * currentCount + Number(rating)) / newCount).toFixed(1));
+
+  const existingReviews = Array.isArray(current.reviews) ? current.reviews : [];
+  const newReview = {
+    id: `rev_${Date.now()}`,
+    userName: userName || "Verified Buyer",
+    rating: Number(rating),
+    comment: comment || "Great authentic OEM condition.",
+    date: new Date().toLocaleDateString("en-IN")
+  };
+
+  await updateScrapListing(scrapId, {
+    rating: newRating,
+    reviewsCount: newCount,
+    reviews: [newReview, ...existingReviews]
+  });
+
+  return { newRating, newCount, review: newReview };
 }

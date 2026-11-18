@@ -85,7 +85,7 @@ export default function Signup() {
       }
 
       toast.success("Account created successfully! Welcome to ScrapX 🎉");
-      navigate("/dashboard");
+      navigate("/scraps");
     } catch (error) {
       console.error("Signup error:", error);
       let errorMsg = error.message;
