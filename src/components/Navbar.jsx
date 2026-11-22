@@ -30,11 +30,24 @@ import {
 
 function Navbar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3);
+  const [unreadCount, setUnreadCount] = useState(() => {
+    const allSeen = localStorage.getItem("scrapx_notifications_all_seen") === "true";
+    const welcomeSeen = localStorage.getItem("scrapx_welcome_notification_seen") === "true";
+    if (allSeen || welcomeSeen) return 0;
+    return 1;
+  });
   const [userDropdown, setUserDropdown] = useState(false);
   const { currentUser, userData, userRole, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleSeen = () => {
+      setUnreadCount(0);
+    };
+    window.addEventListener("notifications_seen", handleSeen);
+    return () => window.removeEventListener("notifications_seen", handleSeen);
+  }, []);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -49,10 +62,12 @@ function Navbar() {
       const unsubscribe = onSnapshot(
         q,
         (snap) => {
-          if (snap.size > 0) {
-            setUnreadCount(snap.size);
+          if (!snap.empty) {
+            const seenIds = JSON.parse(localStorage.getItem("scrapx_seen_notification_ids") || "[]");
+            const unread = snap.docs.filter((doc) => !seenIds.includes(doc.id)).length;
+            setUnreadCount(unread);
           } else {
-            setUnreadCount(2); // Fallback active notification count
+            setUnreadCount(0);
           }
         },
         (err) => {
@@ -65,6 +80,13 @@ function Navbar() {
       console.warn("Notification query setup notice:", err);
     }
   }, [currentUser]);
+
+  const handleNotificationClick = () => {
+    setUnreadCount(0);
+    localStorage.setItem("scrapx_notifications_all_seen", "true");
+    localStorage.setItem("scrapx_welcome_notification_seen", "true");
+    window.dispatchEvent(new Event("notifications_seen"));
+  };
 
   const handleLogout = async () => {
     try {
@@ -318,6 +340,7 @@ function Navbar() {
                 {/* Notification icon with Instagram-style unread badge number */}
                 <Link
                   to="/notification"
+                  onClick={handleNotificationClick}
                   style={{
                     position: "relative",
                     display: "flex",

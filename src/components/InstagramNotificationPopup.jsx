@@ -1,18 +1,51 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { auth, db } from "../firebase";
 import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { Recycle, Bell, X, MessageSquare, ArrowRight, CheckCircle2, ShoppingBag } from "lucide-react";
+import { Recycle, X, MessageSquare, ArrowRight, ShoppingBag } from "lucide-react";
 
 export default function InstagramNotificationPopup() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [visible, setVisible] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(3);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Mark current notification as seen & permanently dismiss
+  const handleMarkSeenAndDismiss = (targetUrl = null) => {
+    setVisible(false);
+
+    if (notification?.id) {
+      try {
+        const seenIds = JSON.parse(localStorage.getItem("scrapx_seen_notification_ids") || "[]");
+        if (!seenIds.includes(notification.id)) {
+          seenIds.push(notification.id);
+          localStorage.setItem("scrapx_seen_notification_ids", JSON.stringify(seenIds));
+        }
+        if (notification.id === "alert_welcome") {
+          localStorage.setItem("scrapx_welcome_notification_seen", "true");
+        }
+      } catch (err) {
+        console.warn("Error storing seen notification:", err);
+      }
+    }
+
+    // Inform Navbar and other components to update badge count
+    window.dispatchEvent(new Event("notifications_seen"));
+
+    if (targetUrl) {
+      navigate(targetUrl);
+    }
+  };
 
   useEffect(() => {
-    // 1. Listen to real Firestore buyRequests if user is logged in
+    // If user is already on the notifications page, do not pop up
+    if (location.pathname === "/notification") {
+      setVisible(false);
+      return;
+    }
+
+    // 1. Listen to real Firestore buyRequests if user is authenticated
     let unsubscribe = null;
     if (auth.currentUser) {
       try {
@@ -24,16 +57,22 @@ export default function InstagramNotificationPopup() {
         unsubscribe = onSnapshot(q, (snap) => {
           if (!snap.empty) {
             const latest = snap.docs[0].data();
-            setUnreadCount(snap.size);
-            setNotification({
-              id: snap.docs[0].id,
-              title: "New Scrap Offer Received!",
-              message: `${latest.buyerName || "A verified buyer"} offered ₹${latest.offeredPrice?.toLocaleString() || "12,500"} for ${latest.partName || "your listed part"}`,
-              time: "Just now",
-              type: "offer",
-              url: "/notification"
-            });
-            setVisible(true);
+            const notifId = snap.docs[0].id;
+            const seenIds = JSON.parse(localStorage.getItem("scrapx_seen_notification_ids") || "[]");
+
+            // Only notify if user hasn't already seen/dismissed this request
+            if (!seenIds.includes(notifId)) {
+              setUnreadCount(snap.size);
+              setNotification({
+                id: notifId,
+                title: "New Scrap Offer Received!",
+                message: `${latest.buyerName || "A verified buyer"} offered ₹${latest.offeredPrice?.toLocaleString() || "12,500"} for ${latest.partName || "your listed part"}`,
+                time: "Just now",
+                type: "offer",
+                url: "/notification"
+              });
+              setVisible(true);
+            }
           }
         });
       } catch (err) {
@@ -41,29 +80,48 @@ export default function InstagramNotificationPopup() {
       }
     }
 
-    // 2. Initial realistic pop-up preview like Instagram push alert
-    const timer = setTimeout(() => {
-      if (!visible && !isDismissed) {
-        setNotification({
-          id: "alert_welcome",
-          title: "Apex Salvage Hub",
-          message: "💬 Accepted your quote! Schedule pickup or chat with seller directly.",
-          time: "Just now",
-          type: "message",
-          url: "/notification"
-        });
-        setUnreadCount(3);
-        setVisible(true);
-      }
-    }, 2500);
+    // 2. Initial welcome alert preview - ONLY show ONCE if never seen before
+    const welcomeSeen = localStorage.getItem("scrapx_welcome_notification_seen") === "true";
+    let timer = null;
+
+    if (!welcomeSeen) {
+      timer = setTimeout(() => {
+        const isStillUnseen = localStorage.getItem("scrapx_welcome_notification_seen") !== "true";
+        if (isStillUnseen && location.pathname !== "/notification") {
+          setNotification({
+            id: "alert_welcome",
+            title: "Apex Salvage Hub",
+            message: "💬 Accepted your quote! Schedule pickup or chat with seller directly.",
+            time: "Just now",
+            type: "message",
+            url: "/notification"
+          });
+          setUnreadCount(1);
+          setVisible(true);
+        }
+      }, 2500);
+    }
 
     return () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       if (unsubscribe) unsubscribe();
     };
-  }, [isDismissed]);
+  }, [location.pathname]);
 
-  if (!visible || !notification) return null;
+  // Auto-dismiss after 8 seconds of inactivity so it doesn't linger forever
+  useEffect(() => {
+    if (!visible) return;
+
+    const autoDismissTimer = setTimeout(() => {
+      handleMarkSeenAndDismiss();
+    }, 8000);
+
+    return () => clearTimeout(autoDismissTimer);
+  }, [visible, notification]);
+
+  if (!visible || !notification || location.pathname === "/notification") {
+    return null;
+  }
 
   return (
     <div
@@ -90,10 +148,7 @@ export default function InstagramNotificationPopup() {
           cursor: "pointer",
           transition: "transform 0.2s ease, box-shadow 0.2s ease"
         }}
-        onClick={() => {
-          setVisible(false);
-          navigate(notification.url);
-        }}
+        onClick={() => handleMarkSeenAndDismiss(notification.url || "/notification")}
         onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-2px)")}
         onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
       >
@@ -117,19 +172,21 @@ export default function InstagramNotificationPopup() {
             <span style={{ fontSize: "0.82rem", fontWeight: "800", letterSpacing: "0.4px", color: "#F8FAFC", textTransform: "uppercase" }}>
               SCRAPX ALERT
             </span>
-            <span
-              style={{
-                background: "#EF4444",
-                color: "white",
-                fontSize: "0.68rem",
-                fontWeight: "800",
-                padding: "1px 7px",
-                borderRadius: "10px",
-                boxShadow: "0 2px 5px rgba(239, 68, 68, 0.4)"
-              }}
-            >
-              {unreadCount} NEW
-            </span>
+            {unreadCount > 0 && (
+              <span
+                style={{
+                  background: "#EF4444",
+                  color: "white",
+                  fontSize: "0.68rem",
+                  fontWeight: "800",
+                  padding: "1px 7px",
+                  borderRadius: "10px",
+                  boxShadow: "0 2px 5px rgba(239, 68, 68, 0.4)"
+                }}
+              >
+                {unreadCount} NEW
+              </span>
+            )}
           </div>
 
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -137,8 +194,7 @@ export default function InstagramNotificationPopup() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                setVisible(false);
-                setIsDismissed(true);
+                handleMarkSeenAndDismiss();
               }}
               style={{
                 background: "rgba(255, 255, 255, 0.1)",
@@ -153,7 +209,7 @@ export default function InstagramNotificationPopup() {
                 cursor: "pointer",
                 padding: 0
               }}
-              title="Dismiss"
+              title="Dismiss & don't show again"
             >
               <X size={13} />
             </button>
@@ -193,7 +249,7 @@ export default function InstagramNotificationPopup() {
           <span style={{ fontSize: "0.75rem", color: "#34D399", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px" }}>
             Tap to open notifications <ArrowRight size={12} />
           </span>
-          <span style={{ fontSize: "0.72rem", color: "#64748B" }}>Swipe or click X to dismiss</span>
+          <span style={{ fontSize: "0.72rem", color: "#64748B" }}>Click to view or ✕ to dismiss</span>
         </div>
       </div>
 

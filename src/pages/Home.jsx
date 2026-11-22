@@ -4,6 +4,9 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import { subscribeToScraps } from "../services/scrapService";
 import { SCRAP_MATERIAL_RATES, calculateScrapValue } from "../services/ratesService";
+import { lookupVehicleByPlate } from "../services/vahanService";
+import VehicleLookupModal from "../components/VehicleLookupModal";
+import { toast } from "react-hot-toast";
 import {
   Search,
   Truck,
@@ -24,7 +27,8 @@ import {
   CheckCircle2,
   Sparkles,
   Zap,
-  Scale
+  Scale,
+  Loader2
 } from "lucide-react";
 
 // Real automotive vehicle data for the 4-step selector
@@ -187,6 +191,9 @@ function Home() {
 
   // Number plate input state
   const [plateNumber, setPlateNumber] = useState("");
+  const [isLookingUpPlate, setIsLookingUpPlate] = useState(false);
+  const [lookedUpVehicle, setLookedUpVehicle] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Live scrap estimator
   const [material, setMaterial] = useState("aluminium");
@@ -228,11 +235,42 @@ function Home() {
     }
   };
 
+  const performPlateLookup = async (plateToQuery) => {
+    const raw = plateToQuery || plateNumber;
+    if (!raw.trim()) {
+      toast.error("Please enter a vehicle registration number (e.g., DL01AB1234)");
+      return;
+    }
+
+    try {
+      setIsLookingUpPlate(true);
+      const vehicleData = await lookupVehicleByPlate(raw);
+      setLookedUpVehicle(vehicleData);
+      setIsModalOpen(true);
+
+      // Auto-populate 4-step cascading dropdowns if maker exists in database
+      if (vehicleData.maker && CAR_DATABASE[vehicleData.maker]) {
+        setMaker(vehicleData.maker);
+        setModel(vehicleData.model);
+        setYear(vehicleData.year);
+        if (vehicleData.modification) {
+          setModification(vehicleData.modification);
+        }
+      }
+
+      toast.success(`Verified: ${vehicleData.maker} ${vehicleData.model} (${vehicleData.year})`, {
+        icon: "🚗"
+      });
+    } catch (err) {
+      toast.error(err.message || "Failed to look up registration details.");
+    } finally {
+      setIsLookingUpPlate(false);
+    }
+  };
+
   const handlePlateSearch = (e) => {
     e.preventDefault();
-    if (plateNumber.trim()) {
-      navigate(`/scraps?q=${encodeURIComponent(plateNumber.trim().toUpperCase())}`);
-    }
+    performPlateLookup(plateNumber);
   };
 
   const popularPills = ["Nexon Turbocharger", "Thar Front Bumper", "Swift Alternator", "Creta Alloy Wheels", "i20 Headlight Assembly", "Brake Calipers"];
@@ -241,30 +279,20 @@ function Home() {
     <div style={{ backgroundColor: "#F8FAFC", minHeight: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Inter', sans-serif" }}>
       <Navbar />
 
-      {/* OEM Brand Logos Ribbon (Exact Boodmo Header Strip) */}
-      <div style={{ borderBottom: "1px solid #E5E7EB", backgroundColor: "#FFFFFF", padding: "12px 20px" }}>
-        <div className="container" style={{ maxWidth: "1280px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "20px", overflowX: "auto" }}>
-          {["PHILIPS", "Galio", "NGK", "SACHS", "LEMFÖRDER", "PHC Valeo", "BOSCH", "BREMBO", "GARRETT", "DELPHI", "LUMAX", "DENSO"].map((brand) => (
-            <span
-              key={brand}
-              onClick={() => navigate(`/scraps?q=${encodeURIComponent(brand)}`)}
-              style={{
-                fontSize: "0.86rem",
-                fontWeight: "800",
-                color: "#6B7280",
-                letterSpacing: "0.5px",
-                whiteSpace: "nowrap",
-                cursor: "pointer",
-                transition: "color 0.15s ease"
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#00A8E8")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#6B7280")}
-            >
-              {brand}
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* Vehicle RC Lookup Modal */}
+      <VehicleLookupModal
+        vehicle={lookedUpVehicle}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onApplyToSelector={(v) => {
+          if (v.maker && CAR_DATABASE[v.maker]) {
+            setMaker(v.maker);
+            setModel(v.model);
+            setYear(v.year);
+            if (v.modification) setModification(v.modification);
+          }
+        }}
+      />
 
       {/* Main Container */}
       <main style={{ flex: 1, padding: "28px 20px 70px" }}>
@@ -334,78 +362,132 @@ function Home() {
                 Search by <span style={{ color: "#00A8E8" }}>Vehicle</span>
               </h2>
 
-              {/* Number Plate Search (Indian HSRP plate styling) */}
-              <form onSubmit={handlePlateSearch} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>
-                  Search by number plate:
-                </span>
-                
-                {/* Plate Card Box */}
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: "2px solid #64748B",
-                  borderRadius: "8px",
-                  background: "linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 100%)",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.18), inset 0 1px 2px rgba(255,255,255,0.9)",
-                  overflow: "hidden"
-                }}>
-                  {/* Left IND Blue Hologram */}
+              {/* Number Plate Search (Indian HSRP plate styling - Fully Workable) */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+                <form onSubmit={handlePlateSearch} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <span style={{ fontSize: "0.85rem", color: "#475569", fontWeight: "600" }}>
+                    Search by number plate:
+                  </span>
+                  
+                  {/* Plate Card Box */}
                   <div style={{
-                    padding: "4px 8px",
                     display: "flex",
-                    flexDirection: "column",
                     alignItems: "center",
-                    justifyContent: "center",
-                    borderRight: "1.5px solid #CBD5E1",
-                    background: "rgba(255,255,255,0.7)"
+                    border: "2px solid #64748B",
+                    borderRadius: "8px",
+                    background: "linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 100%)",
+                    boxShadow: "0 2px 6px rgba(0,0,0,0.18), inset 0 1px 2px rgba(255,255,255,0.9)",
+                    overflow: "hidden"
                   }}>
-                    <span style={{ fontSize: "0.6rem", color: "#2563EB", lineHeight: 1 }}>🇮🇳</span>
-                    <span style={{ fontSize: "0.55rem", fontWeight: "900", color: "#1E3A8A", lineHeight: 1, marginTop: "2px" }}>IND</span>
-                  </div>
-
-                  {/* License Plate Input */}
-                  <input
-                    type="text"
-                    placeholder="DL1AA2345"
-                    value={plateNumber}
-                    onChange={(e) => setPlateNumber(e.target.value)}
-                    style={{
-                      border: "none",
-                      outline: "none",
-                      padding: "8px 12px",
-                      fontSize: "1.05rem",
-                      fontWeight: "900",
-                      color: "#1E293B",
-                      backgroundColor: "transparent",
-                      letterSpacing: "1.5px",
-                      width: "135px",
-                      textTransform: "uppercase"
-                    }}
-                  />
-
-                  {/* Attached Cyan Search Button */}
-                  <button
-                    type="submit"
-                    style={{
-                      backgroundColor: "#48CAE4",
-                      border: "none",
-                      padding: "10px 14px",
-                      cursor: "pointer",
+                    {/* Left IND Blue Hologram */}
+                    <div style={{
+                      padding: "4px 8px",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      color: "white",
-                      transition: "background 0.15s ease"
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00B4D8")}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#48CAE4")}
-                    title="Search vehicle by number plate"
-                  >
-                    <Search size={17} />
-                  </button>
+                      borderRight: "1.5px solid #CBD5E1",
+                      background: "rgba(255,255,255,0.7)"
+                    }}>
+                      <span style={{ fontSize: "0.6rem", color: "#2563EB", lineHeight: 1 }}>🇮🇳</span>
+                      <span style={{ fontSize: "0.55rem", fontWeight: "900", color: "#1E3A8A", lineHeight: 1, marginTop: "2px" }}>IND</span>
+                    </div>
+
+                    {/* License Plate Input */}
+                    <input
+                      type="text"
+                      placeholder="DL01AB1234"
+                      value={plateNumber}
+                      onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+                      style={{
+                        border: "none",
+                        outline: "none",
+                        padding: "8px 12px",
+                        fontSize: "1.05rem",
+                        fontWeight: "900",
+                        color: "#1E293B",
+                        backgroundColor: "transparent",
+                        letterSpacing: "1.5px",
+                        width: "145px",
+                        textTransform: "uppercase"
+                      }}
+                    />
+
+                    {/* Attached Cyan Search Button */}
+                    <button
+                      type="submit"
+                      disabled={isLookingUpPlate}
+                      style={{
+                        backgroundColor: isLookingUpPlate ? "#00B4D8" : "#48CAE4",
+                        border: "none",
+                        padding: "10px 14px",
+                        cursor: isLookingUpPlate ? "wait" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "white",
+                        minWidth: "44px",
+                        transition: "background 0.15s ease"
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00B4D8")}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isLookingUpPlate ? "#00B4D8" : "#48CAE4")}
+                      title="Look up vehicle RC details"
+                    >
+                      {isLookingUpPlate ? (
+                        <div style={{ width: "16px", height: "16px", border: "2px solid #FFF", borderTopColor: "transparent", borderRadius: "50%", animation: "plateSpin 0.6s linear infinite" }} />
+                      ) : (
+                        <Search size={17} />
+                      )}
+                    </button>
+                  </div>
+                </form>
+
+                {/* Quick Sample Clickable Plates */}
+                <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <span style={{ fontSize: "0.72rem", color: "#64748B", fontWeight: "600" }}>
+                    Try sample plates:
+                  </span>
+                  {[
+                    { label: "Swift", plate: "DL01AB1234" },
+                    { label: "Thar", plate: "HR26DQ5555" },
+                    { label: "Creta", plate: "MH12DE1432" },
+                    { label: "Nexon", plate: "UP16BZ9081" },
+                    { label: "City", plate: "KA05MN7890" }
+                  ].map((item) => (
+                    <button
+                      key={item.plate}
+                      type="button"
+                      onClick={() => {
+                        setPlateNumber(item.plate);
+                        performPlateLookup(item.plate);
+                      }}
+                      style={{
+                        background: "#FFFFFF",
+                        border: "1px solid #CBD5E1",
+                        borderRadius: "5px",
+                        padding: "2px 7px",
+                        fontSize: "0.7rem",
+                        fontWeight: "700",
+                        color: "#0B3B60",
+                        cursor: "pointer",
+                        transition: "all 0.12s ease"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "#00A8E8";
+                        e.currentTarget.style.color = "#00A8E8";
+                        e.currentTarget.style.backgroundColor = "#F0F9FF";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "#CBD5E1";
+                        e.currentTarget.style.color = "#0B3B60";
+                        e.currentTarget.style.backgroundColor = "#FFFFFF";
+                      }}
+                    >
+                      {item.label} ({item.plate})
+                    </button>
+                  ))}
                 </div>
-              </form>
+              </div>
             </div>
 
             {/* Signature Dark Navy Full-Width Bar with 4 Dropdowns + Cyan Button */}
@@ -1091,6 +1173,10 @@ function Home() {
       <Footer />
 
       <style>{`
+        @keyframes plateSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
         @media (max-width: 900px) {
           .estimator-grid {
             grid-template-columns: 1fr !important;

@@ -47,6 +47,14 @@ function ScrapList() {
   const [buyingScrap, setBuyingScrap] = useState(null);
   const [showPartRequestModal, setShowPartRequestModal] = useState(false);
 
+  // Sync search input if URL search params change
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q !== null) {
+      setSearch(q);
+    }
+  }, [searchParams]);
+
   // Unified Database & Real-time Listener
   useEffect(() => {
     const unsubscribe = subscribeToScraps((data) => {
