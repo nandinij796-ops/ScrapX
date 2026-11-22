@@ -10,6 +10,8 @@ import { calculateDistance, formatDistance } from "../utils/geo";
 import BuyRequestModal from "../components/BuyRequestModal";
 import PartRequestModal from "../components/PartRequestModal";
 import ScrapDetailModal from "../components/ScrapDetailModal";
+import VehicleLookupModal from "../components/VehicleLookupModal";
+import { lookupVehicleByPlate } from "../services/vahanService";
 import { deleteStoragePhoto } from "../utils/storage";
 import { subscribeToScraps, deleteScrapListing } from "../services/scrapService";
 import {
@@ -23,7 +25,9 @@ import {
   Edit,
   Eye,
   Star,
-  ShieldCheck
+  ShieldCheck,
+  Loader2,
+  X
 } from "lucide-react";
 
 function ScrapList() {
@@ -46,6 +50,48 @@ function ScrapList() {
   const [selectedScrap, setSelectedScrap] = useState(null);
   const [buyingScrap, setBuyingScrap] = useState(null);
   const [showPartRequestModal, setShowPartRequestModal] = useState(false);
+
+  // Number Plate Lookup States
+  const [plateNumber, setPlateNumber] = useState("");
+  const [isLookingUpPlate, setIsLookingUpPlate] = useState(false);
+  const [lookedUpVehicle, setLookedUpVehicle] = useState(null);
+  const [isVehicleModalOpen, setIsVehicleModalOpen] = useState(false);
+  const [activeVehicleFilter, setActiveVehicleFilter] = useState(null);
+
+  const performPlateLookup = async (plateToQuery) => {
+    const raw = plateToQuery || plateNumber;
+    if (!raw.trim()) {
+      toast.error("Please enter a vehicle registration number (e.g. DL01AB1234)");
+      return;
+    }
+
+    try {
+      setIsLookingUpPlate(true);
+      const vehicleData = await lookupVehicleByPlate(raw);
+      setLookedUpVehicle(vehicleData);
+      setIsVehicleModalOpen(true);
+      setActiveVehicleFilter(vehicleData);
+      setSearch(vehicleData.model);
+      toast.success(`Verified: ${vehicleData.maker} ${vehicleData.model} (${vehicleData.year})`, {
+        icon: "🚗"
+      });
+    } catch (err) {
+      toast.error(err.message || "Failed to look up vehicle registration.");
+    } finally {
+      setIsLookingUpPlate(false);
+    }
+  };
+
+  const handlePlateSearch = (e) => {
+    e.preventDefault();
+    performPlateLookup(plateNumber);
+  };
+
+  const clearVehicleFilter = () => {
+    setActiveVehicleFilter(null);
+    setSearch("");
+    setPlateNumber("");
+  };
 
   // Sync search input if URL search params change
   useEffect(() => {
@@ -191,6 +237,255 @@ function ScrapList() {
               </Link>
             </div>
           </div>
+
+          {/* Search Spare Parts by Vehicle Number Plate */}
+          <div
+            style={{
+              backgroundColor: "#0B3B60",
+              borderRadius: "16px",
+              padding: "20px 24px",
+              marginBottom: "20px",
+              boxShadow: "0 8px 24px rgba(11, 59, 96, 0.2)",
+              color: "#FFFFFF",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "18px"
+            }}
+          >
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                <span
+                  style={{
+                    backgroundColor: "rgba(72, 202, 228, 0.2)",
+                    color: "#E0F2FE",
+                    border: "1px solid rgba(72, 202, 228, 0.4)",
+                    padding: "2px 8px",
+                    borderRadius: "6px",
+                    fontSize: "0.72rem",
+                    fontWeight: "800",
+                    letterSpacing: "0.5px",
+                    textTransform: "uppercase"
+                  }}
+                >
+                  Direct Vehicle Match
+                </span>
+                <span style={{ fontSize: "0.75rem", color: "#94A3B8" }}>
+                  Official Parivahan VAHAN Registry
+                </span>
+              </div>
+              <h3 style={{ margin: "2px 0 4px", fontSize: "1.35rem", fontWeight: "800", color: "#FFFFFF" }}>
+                Search Spare Parts by <span style={{ color: "#48CAE4" }}>Number Plate</span>
+              </h3>
+              <p style={{ margin: 0, fontSize: "0.86rem", color: "#CBD5E1", maxWidth: "480px" }}>
+                Enter your vehicle registration number to instantly decode RC and filter 100% compatible OEM parts.
+              </p>
+            </div>
+
+            {/* Plate Input & Form */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px" }}>
+              <form onSubmit={handlePlateSearch} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                {/* Plate Card Box */}
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    border: "2px solid #64748B",
+                    borderRadius: "8px",
+                    background: "linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 100%)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.9)",
+                    overflow: "hidden"
+                  }}
+                >
+                  {/* Left IND Blue Hologram */}
+                  <div
+                    style={{
+                      padding: "4px 8px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRight: "1.5px solid #CBD5E1",
+                      background: "rgba(255,255,255,0.85)"
+                    }}
+                  >
+                    <span style={{ fontSize: "0.6rem", color: "#2563EB", lineHeight: 1 }}>🇮🇳</span>
+                    <span style={{ fontSize: "0.55rem", fontWeight: "900", color: "#1E3A8A", lineHeight: 1, marginTop: "2px" }}>IND</span>
+                  </div>
+
+                  {/* License Plate Input */}
+                  <input
+                    type="text"
+                    placeholder="DL01AB1234"
+                    value={plateNumber}
+                    onChange={(e) => setPlateNumber(e.target.value.toUpperCase())}
+                    style={{
+                      border: "none",
+                      outline: "none",
+                      padding: "8px 12px",
+                      fontSize: "1.05rem",
+                      fontWeight: "900",
+                      color: "#1E293B",
+                      backgroundColor: "transparent",
+                      letterSpacing: "1.5px",
+                      width: "145px",
+                      textTransform: "uppercase"
+                    }}
+                  />
+
+                  {/* Search Button */}
+                  <button
+                    type="submit"
+                    disabled={isLookingUpPlate}
+                    style={{
+                      backgroundColor: isLookingUpPlate ? "#00B4D8" : "#48CAE4",
+                      border: "none",
+                      padding: "10px 14px",
+                      cursor: isLookingUpPlate ? "wait" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      minWidth: "44px",
+                      transition: "background 0.15s ease"
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#00B4D8")}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = isLookingUpPlate ? "#00B4D8" : "#48CAE4")}
+                    title="Look up vehicle RC details"
+                  >
+                    {isLookingUpPlate ? (
+                      <div style={{ width: "16px", height: "16px", border: "2px solid #FFF", borderTopColor: "transparent", borderRadius: "50%", animation: "plateSpin 0.6s linear infinite" }} />
+                    ) : (
+                      <Search size={17} />
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {/* Sample Plate Pills */}
+              <div style={{ display: "flex", alignItems: "center", gap: "5px", flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <span style={{ fontSize: "0.72rem", color: "#94A3B8", fontWeight: "600" }}>
+                  Try sample plates:
+                </span>
+                {[
+                  { label: "Swift", plate: "DL01AB1234" },
+                  { label: "Thar", plate: "HR26DQ5555" },
+                  { label: "Creta", plate: "MH12DE1432" },
+                  { label: "Nexon", plate: "UP16BZ9081" },
+                  { label: "City", plate: "KA05MN7890" }
+                ].map((item) => (
+                  <button
+                    key={item.plate}
+                    type="button"
+                    onClick={() => {
+                      setPlateNumber(item.plate);
+                      performPlateLookup(item.plate);
+                    }}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.12)",
+                      border: "1px solid rgba(255, 255, 255, 0.25)",
+                      borderRadius: "5px",
+                      padding: "2px 7px",
+                      fontSize: "0.7rem",
+                      fontWeight: "700",
+                      color: "#E2E8F0",
+                      cursor: "pointer",
+                      transition: "all 0.12s ease"
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = "#48CAE4";
+                      e.currentTarget.style.color = "#48CAE4";
+                      e.currentTarget.style.backgroundColor = "rgba(72, 202, 228, 0.2)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.25)";
+                      e.currentTarget.style.color = "#E2E8F0";
+                      e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.12)";
+                    }}
+                  >
+                    {item.label} ({item.plate})
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Active Vehicle Filter Chip */}
+          {activeVehicleFilter && (
+            <div
+              style={{
+                backgroundColor: "#ECFDF5",
+                border: "1.5px solid #A7F3D0",
+                borderRadius: "12px",
+                padding: "12px 18px",
+                marginBottom: "20px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: "10px"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                <span
+                  style={{
+                    backgroundColor: "#15803D",
+                    color: "white",
+                    padding: "3px 8px",
+                    borderRadius: "6px",
+                    fontSize: "0.74rem",
+                    fontWeight: "800"
+                  }}
+                >
+                  ACTIVE VEHICLE FILTER
+                </span>
+                <span style={{ fontWeight: "800", color: "#0F172A", fontSize: "0.95rem" }}>
+                  🚗 {activeVehicleFilter.maker} {activeVehicleFilter.model} ({activeVehicleFilter.year})
+                </span>
+                <span style={{ color: "#64748B", fontSize: "0.85rem" }}>
+                  • Reg: <strong>{activeVehicleFilter.plate}</strong> ({activeVehicleFilter.rto})
+                </span>
+              </div>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <button
+                  type="button"
+                  onClick={() => setIsVehicleModalOpen(true)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#059669",
+                    fontWeight: "700",
+                    fontSize: "0.85rem",
+                    cursor: "pointer",
+                    textDecoration: "underline"
+                  }}
+                >
+                  View Full RC Details
+                </button>
+                <button
+                  type="button"
+                  onClick={clearVehicleFilter}
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    border: "1px solid #CBD5E1",
+                    borderRadius: "6px",
+                    padding: "4px 10px",
+                    fontSize: "0.82rem",
+                    fontWeight: "700",
+                    color: "#EF4444",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    cursor: "pointer"
+                  }}
+                >
+                  <X size={14} /> Clear Filter
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Filter Bar */}
           <div className="premium-card" style={{ padding: "20px 24px", marginBottom: "32px" }}>
@@ -631,7 +926,25 @@ function ScrapList() {
         />
       )}
 
+      {/* Vehicle RC Record Modal */}
+      <VehicleLookupModal
+        vehicle={lookedUpVehicle}
+        isOpen={isVehicleModalOpen}
+        onClose={() => setIsVehicleModalOpen(false)}
+        onApplyToSelector={(v) => {
+          setActiveVehicleFilter(v);
+          setSearch(v.model);
+        }}
+      />
+
       <Footer />
+
+      <style>{`
+        @keyframes plateSpin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 }
